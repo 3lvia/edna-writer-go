@@ -1,4 +1,4 @@
-module github.com/3lvia/edna-writer
+module github.com/3lvia/edna-writer-go
 
 go 1.16
 
