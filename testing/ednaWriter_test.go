@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	projectID = "edna-dev-19388"
-	datasetID = "dp_leveransemotor_raw"
+	projectID = "my-project"
+	datasetID = "domain_area_raw"
 	//vaultPath = "edna/kv/data/gcp-serviceaccounts/system-monitoring"
 )
 
@@ -40,7 +40,7 @@ func Test_Start(t *testing.T) {
 			case c := <-cc:
 				fmt.Printf("count %s changed by %f\n", c.Name, c.Increment)
 				count++
-				if count >= 3 {
+				if count >= 4 {
 					wg.Done()
 				}
 			case g := <-gc:
@@ -67,6 +67,14 @@ func Test_Start(t *testing.T) {
 		t.Errorf("unexpected number of rows written, got %d", len(ops.rows))
 	}
 
+	if len(ops.tableCreations) != 1 {
+		t.Fatalf("unexpected number of table creations, got %d", len(ops.tableCreations))
+	}
+
+	tc := ops.tableCreations[0]
+	if tc != "domain_area_raw.integration_test_truncate" {
+		t.Errorf("unexpected table created, got %s", tc)
+	}
 }
 
 func startProducer(ss sink.SourceStream) {
@@ -133,14 +141,14 @@ type mockTableOperations struct {
 	rows           []bigquery.ValueSaver
 }
 
-func (m *mockTableOperations) Write(ctx context.Context, client *bigquery.Client, dataset string, schema sink.Schema, rows []bigquery.ValueSaver) error {
+func (m *mockTableOperations) Write(ctx context.Context, dataset string, schema sink.Schema, rows []bigquery.ValueSaver) error {
 	for _, saver := range rows {
 		m.rows = append(m.rows, saver)
 	}
 	return nil
 }
 
-func (m *mockTableOperations) CreateTable(ctx context.Context, client *bigquery.Client, dataset string, schema sink.Schema) error {
+func (m *mockTableOperations) CreateTable(ctx context.Context, dataset string, schema sink.Schema) error {
 	m.tableCreations = append(m.tableCreations, fmt.Sprintf("%s.%s", dataset, schema.BQSchema.Name))
 	return nil
 }

@@ -27,13 +27,14 @@ func main() {
     var streams []sink.TargetStream
 
     mySourceStream, myTargetStream := sink.Streams("my-data", schema())
-    streams = append(streams, myTargetStream)
+    sourceStream := sink.Stream("test", schema()))
+    
     startProducer(mySourceStream)
     
-    sink.Start(
+	sink.Start(
 		ctx,
-		[]sink.TargetStream{targetStream},
-		sink.WithBigQuery(projectID, datasetID),
+		sink.WithBigQuery("google-project-id", "dataset-id"),
+		sink.WithTableOperations(ops),
 		sink.WithMetrics(m))
 }
 

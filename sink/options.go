@@ -1,6 +1,11 @@
 package sink
 
-import "github.com/3lvia/metrics-go/metrics"
+import (
+	"cloud.google.com/go/bigquery"
+	"context"
+	"github.com/3lvia/metrics-go/metrics"
+	"log"
+)
 
 type optionsCollector struct {
 	projectID string
@@ -10,12 +15,17 @@ type optionsCollector struct {
 	metrics metrics.Metrics
 }
 
-func (c *optionsCollector) operations() TableOperations {
+func (c *optionsCollector) operations(ctx context.Context) TableOperations {
 	if c.ops == nil {
-		return &tableOperations{}
+		client, err := bigquery.NewClient(ctx, c.projectID)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return &tableOperations{client: client}
 	}
 	return c.ops
 }
+
 
 // Option for configuring this package.
 type Option func(collector *optionsCollector)

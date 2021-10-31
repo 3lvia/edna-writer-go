@@ -31,17 +31,12 @@ func Start(ctx context.Context, opts ...Option) {
 		opt(collector)
 	}
 
-	client, err := bigquery.NewClient(ctx, collector.projectID)
-	if err != nil {
-		log.Fatal(err)
-	}
 	errorChan := make(chan error)
 
-	ops := collector.operations()
+	ops := collector.operations(ctx)
 
 	for _, stream := range streams {
 		handler := &streamHandler{
-			client:     client,
 			dataset:    collector.datasetID,
 			operations: ops,
 			metrics:    collector.metrics,

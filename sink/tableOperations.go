@@ -9,18 +9,16 @@ import (
 )
 
 type TableOperations interface {
-	Write(ctx context.Context, client *bigquery.Client, dataset string, schema Schema, rows []bigquery.ValueSaver) error
-	CreateTable(ctx context.Context, client *bigquery.Client, dataset string, schema Schema) error
+	Write(ctx context.Context, dataset string, schema Schema, rows []bigquery.ValueSaver) error
+	CreateTable(ctx context.Context, dataset string, schema Schema) error
 }
 
 type tableOperations struct {
+	client *bigquery.Client
 }
 
-func (o *tableOperations) Write(ctx context.Context, client *bigquery.Client, dataset string, schema Schema, rows []bigquery.ValueSaver) error {
-	err := o.CreateTable(ctx, client, dataset, schema)
-	if err != nil {
-		return err
-	}
+func (o *tableOperations) Write(ctx context.Context,  dataset string, schema Schema, rows []bigquery.ValueSaver) error {
+	client := o.client
 
 	// Write directly to the table and be finished if the disposition is WriteAppend
 	finalTable := client.Dataset(dataset).Table(schema.BQSchema.Name)
@@ -31,7 +29,7 @@ func (o *tableOperations) Write(ctx context.Context, client *bigquery.Client, da
 	// The disposition != WriteAppend and we are assuming WriteTruncate. This operation has 4 steps:
 	// STEP 1: Write the data to a temporary table
 	tempTable := client.Dataset(dataset).Table(tempTable(schema.BQSchema.Name, time.Now().UTC()))
-	err = writeDirect(ctx, tempTable, rows)
+	err := writeDirect(ctx, tempTable, rows)
 	if err != nil {
 		return err
 	}
@@ -61,8 +59,8 @@ func (o *tableOperations) Write(ctx context.Context, client *bigquery.Client, da
 
 }
 
-func (o *tableOperations) CreateTable(ctx context.Context, client *bigquery.Client, dataset string, schema Schema) error {
-
+func (o *tableOperations) CreateTable(ctx context.Context, dataset string, schema Schema) error {
+	client := o.client
 	tableRef := client.Dataset(dataset).Table(schema.BQSchema.Name)
 	if err := tableRef.Create(ctx, schema.BQSchema); err != nil {
 		if !strings.Contains(err.Error(), "googleapi: Error 409: Already Exists:") {
