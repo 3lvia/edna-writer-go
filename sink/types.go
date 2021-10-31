@@ -1,17 +1,8 @@
-package types
+package sink
 
 import "cloud.google.com/go/bigquery"
 
-func Streams(typ string, schema Schema) (SourceStream, TargetStream) {
-	s := &stream{
-		typ:     typ,
-		schema:  schema,
-		objects: make(chan bigquery.ValueSaver),
-		done:    make(chan struct{}),
-	}
-	return s, s
-}
-
+// Schema wraps the BigQuery schema and write disposition.
 type Schema struct {
 	//TableDescription string
 	//Dataset          string
@@ -20,7 +11,7 @@ type Schema struct {
 	Disposition      bigquery.TableWriteDisposition
 }
 
-type TargetStream interface {
+type targetStream interface {
 	Type() string
 	Stream() <-chan bigquery.ValueSaver
 	Done() <-chan struct{}

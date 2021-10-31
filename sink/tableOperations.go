@@ -4,13 +4,20 @@ import (
 	"cloud.google.com/go/bigquery"
 	"context"
 	"fmt"
-	"github.com/3lvia/edna-writer/types"
 	"strings"
 	"time"
 )
 
-func write(ctx context.Context, client *bigquery.Client, dataset string, schema types.Schema, rows []bigquery.ValueSaver) error {
-	err := createTable(ctx, client, dataset, schema)
+type TableOperations interface {
+	Write(ctx context.Context, client *bigquery.Client, dataset string, schema Schema, rows []bigquery.ValueSaver) error
+	CreateTable(ctx context.Context, client *bigquery.Client, dataset string, schema Schema) error
+}
+
+type tableOperations struct {
+}
+
+func (o *tableOperations) Write(ctx context.Context, client *bigquery.Client, dataset string, schema Schema, rows []bigquery.ValueSaver) error {
+	err := o.CreateTable(ctx, client, dataset, schema)
 	if err != nil {
 		return err
 	}
@@ -54,21 +61,21 @@ func write(ctx context.Context, client *bigquery.Client, dataset string, schema 
 
 }
 
-func writeDirect(ctx context.Context, table *bigquery.Table, rows []bigquery.ValueSaver) error {
-	inserter := table.Inserter()
-	if err := inserter.Put(ctx, rows); err != nil {
-		return err
-	}
-	return nil
-}
-
-func createTable(ctx context.Context, client *bigquery.Client, dataset string, schema types.Schema) error {
+func (o *tableOperations) CreateTable(ctx context.Context, client *bigquery.Client, dataset string, schema Schema) error {
 
 	tableRef := client.Dataset(dataset).Table(schema.BQSchema.Name)
 	if err := tableRef.Create(ctx, schema.BQSchema); err != nil {
 		if !strings.Contains(err.Error(), "googleapi: Error 409: Already Exists:") {
 			return err
 		}
+	}
+	return nil
+}
+
+func writeDirect(ctx context.Context, table *bigquery.Table, rows []bigquery.ValueSaver) error {
+	inserter := table.Inserter()
+	if err := inserter.Put(ctx, rows); err != nil {
+		return err
 	}
 	return nil
 }
