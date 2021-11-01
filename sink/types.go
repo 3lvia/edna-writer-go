@@ -4,9 +4,6 @@ import "cloud.google.com/go/bigquery"
 
 // Schema wraps the BigQuery schema and write disposition.
 type Schema struct {
-	//TableDescription string
-	//Dataset          string
-	//Table            string
 	BQSchema         *bigquery.TableMetadata
 	Disposition      bigquery.TableWriteDisposition
 }
@@ -19,6 +16,7 @@ type targetStream interface {
 }
 
 type SourceStream interface {
+	Type() string
 	Send(v bigquery.ValueSaver)
 	Complete()
 }
