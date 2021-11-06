@@ -138,7 +138,7 @@ func Test_Start_WriteTruncate(t *testing.T) {
 		t.Errorf("unexpected number of copy operations, got %d", len(ops.tableCopyOperations))
 	}
 
-	if len(ops.tableDeletions) != 2 {
+	if len(ops.tableDeletions) != 1 {
 		t.Errorf("unexpected number of table deletions, got %d", len(ops.tableDeletions))
 	}
 }

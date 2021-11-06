@@ -64,13 +64,13 @@ func (s *streamHandler) writeTruncate(ctx context.Context, rows []bigquery.Value
 		return "while writing to temporary table", err
 	}
 
-	table := s.operations.TableRef(s.dataset, stream.Schema())
-	err = s.operations.DeleteTable(ctx, table)
-	if err != nil {
-		return "while deleting existing table", err
-	}
+//	table := s.operations.TableRef(s.dataset, stream.Schema())
+//	err = s.operations.DeleteTable(ctx, table)
+//	if err != nil {
+//		return "while deleting existing table", err
+//	}
 
-	table, err = s.operations.CreateTable(ctx, s.dataset, stream.Schema())
+	table, err := s.operations.CreateTable(ctx, s.dataset, stream.Schema())
 	if err != nil {
 		return "while creating table", err
 	}
