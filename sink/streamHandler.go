@@ -16,7 +16,7 @@ const (
 	metricsErrors = `sink_errors`
 )
 
-type writeOrchestration func(ctx context.Context, rows []bigquery.ValueSaver, stream targetStream) (string, error)
+type writeOrchestration func(ctx context.Context, rows []bigquery.ValueSaver, stream *streamImpl) (string, error)
 
 type streamHandler struct {
 	dataset    string
@@ -24,7 +24,7 @@ type streamHandler struct {
 	metrics    metrics.Metrics
 }
 
-func (s *streamHandler) start(ctx context.Context, stream targetStream, errorOutput chan<- error) {
+func (s *streamHandler) start(ctx context.Context, stream *streamImpl, errorOutput chan<- error) {
 	metricsReceived := fmt.Sprintf(metricsTemplateReceived, stream.Type())
 	metricsFlushed := fmt.Sprintf(metricsTemplateFlushed, stream.Type())
 
@@ -42,14 +42,16 @@ func (s *streamHandler) start(ctx context.Context, stream targetStream, errorOut
 			if err != nil {
 				s.reportErr(err, msg, errorOutput)
 			}
-			rows = []bigquery.ValueSaver{}
+
 			c := s.metrics.Counter(metricsFlushed, metrics.DayLabels())
 			c.Add(float64(len(rows)))
+
+			rows = []bigquery.ValueSaver{}
 		}
 	}
 }
 
-func (s *streamHandler) writeTruncate(ctx context.Context, rows []bigquery.ValueSaver, stream targetStream) (string, error) {
+func (s *streamHandler) writeTruncate(ctx context.Context, rows []bigquery.ValueSaver, stream *streamImpl) (string, error) {
 	tempTableName := tempTable(stream.Schema().BQSchema.Name, time.Now().UTC())
 	tempSchema := tempTableSchema(tempTableName, stream.Schema())
 	tempTable, err := s.operations.CreateTable(ctx, s.dataset, tempSchema)
@@ -86,7 +88,7 @@ func (s *streamHandler) writeTruncate(ctx context.Context, rows []bigquery.Value
 	return "", nil
 }
 
-func (s *streamHandler) writeAppend(ctx context.Context, rows []bigquery.ValueSaver, stream targetStream) (string, error) {
+func (s *streamHandler) writeAppend(ctx context.Context, rows []bigquery.ValueSaver, stream *streamImpl) (string, error) {
 	table, err := s.operations.CreateTable(ctx, s.dataset, stream.Schema())
 	if err != nil {
 		return "while creating table", err

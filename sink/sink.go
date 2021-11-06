@@ -16,13 +16,13 @@ import (
 	"log"
 )
 
-var streams []targetStream
+var streams []*streamImpl
 
-// Start the internal functionality by creating and starting an internal handler per incoming stream. Each handler is
+// Start the internal functionality by creating and starting an internal handler per incoming streamImpl. Each handler is
 // started in a separate go routine.
 func Start(ctx context.Context, opts ...Option) {
 	if len(streams) == 0 {
-		err := errors.New("at least one stream must be registered before starting this module")
+		err := errors.New("at least one streamImpl must be registered before starting this module")
 		log.Fatal(err)
 	}
 
@@ -58,11 +58,11 @@ func Start(ctx context.Context, opts ...Option) {
 
 }
 
-// Stream creates and returns a stream that client code chan be used to stream objects that shall be written to
-// BigQuery. This function has the side effect of caching the corresponding target stream internally so that changes
+// Stream creates and returns a streamImpl that client code chan be used to streamImpl objects that shall be written to
+// BigQuery. This function has the side effect of caching the corresponding target streamImpl internally so that changes
 // are handled when this package is started.
 func Stream(typ string, schema Schema) SourceStream {
-	s := &stream{
+	s := &streamImpl{
 		typ:     typ,
 		schema:  schema,
 		objects: make(chan bigquery.ValueSaver),

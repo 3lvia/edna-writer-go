@@ -51,11 +51,24 @@ func (o *tableOperations) CreateTable(ctx context.Context, dataset string, schem
 }
 
 func (o *tableOperations) CopyTable(ctx context.Context, source, dest *bigquery.Table) error {
+	copier := dest.CopierFrom(source)
+	copier.WriteDisposition = bigquery.WriteTruncate
+	j, err := copier.Run(ctx)
+	if err != nil {
+		return err
+	}
+	status, err := j.Wait(ctx)
+	if err != nil {
+		return err
+	}
+	if err := status.Err(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (o *tableOperations) DeleteTable(ctx context.Context, table *bigquery.Table) error {
-	return nil
+	return table.Delete(ctx)
 }
 
 func (o *tableOperations) TableRef(dataset string, schema Schema) *bigquery.Table {
