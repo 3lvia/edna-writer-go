@@ -8,11 +8,22 @@ import (
 	"time"
 )
 
+// TableOperations provides an abstraction for the concrete operations that happen against BigQuery.
 type TableOperations interface {
+	// Write writes the given value to the table in BigQuery
 	Write(ctx context.Context, table *bigquery.Table, rows []bigquery.ValueSaver) error
+
+	// CreateTable creates the table in BigQuery.
 	CreateTable(ctx context.Context, dataset string, schema Schema) (*bigquery.Table, error)
+
+	// CopyTable copies the content of the source table to the destination table.
 	CopyTable(ctx context.Context, source, dest *bigquery.Table) error
+
+	// DeleteTable deletes the table in BigQuery.
 	DeleteTable(ctx context.Context, table *bigquery.Table) error
+
+	// TableRef creates and returns a reference to the table with the given schema and schema. The name of the table
+	// is embedded in the schema.
 	TableRef(dataset string, schema Schema) *bigquery.Table
 }
 

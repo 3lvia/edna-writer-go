@@ -22,7 +22,7 @@ var streams []targetStream
 // started in a separate go routine.
 func Start(ctx context.Context, opts ...Option) {
 	if len(streams) == 0 {
-		err :=  errors.New("at least one stream must be registered before starting this module")
+		err := errors.New("at least one stream must be registered before starting this module")
 		log.Fatal(err)
 	}
 
@@ -32,6 +32,7 @@ func Start(ctx context.Context, opts ...Option) {
 	}
 
 	errorChan := make(chan error)
+	externalErrChan := collector.errorChan
 
 	ops := collector.operations(ctx)
 
@@ -44,13 +45,17 @@ func Start(ctx context.Context, opts ...Option) {
 		go handler.start(ctx, stream, errorChan)
 	}
 
-	go func(ec <-chan error) {
+	go func(ec <-chan error, ext chan<- error) {
 		for {
-			e := <- ec
+			e := <-ec
 			collector.metrics.IncCounter("sink_errors", metrics.DayLabels())
 			log.Print(fmt.Sprintf("%v", e))
+			if ext != nil {
+				ext <- e
+			}
 		}
-	}(errorChan)
+	}(errorChan, externalErrChan)
+
 }
 
 // Stream creates and returns a stream that client code chan be used to stream objects that shall be written to

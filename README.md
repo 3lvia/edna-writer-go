@@ -97,3 +97,11 @@ func schema() sink.Schema {
 	}
 }
 ```
+
+## Metrics
+# HELP sink_initiative_flushed
+# TYPE sink_initiative_flushed counter
+sink_initiative_flushed{day="2021-11-04"} 0
+# HELP sink_initiative_received
+# TYPE sink_initiative_received counter
+sink_initiative_received{day="2021-11-04"} 72

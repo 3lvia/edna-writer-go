@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/3lvia/metrics-go/metrics"
 	"github.com/pkg/errors"
+	"log"
 	"time"
 )
 
@@ -34,6 +35,7 @@ func (s *streamHandler) start(ctx context.Context, stream targetStream, errorOut
 			rows = append(rows, obj)
 			s.metrics.IncCounter(metricsReceived, metrics.DayLabels())
 		case <-stream.Done():
+			log.Print(fmt.Sprintf("iteration done received from %s", stream.Type()))
 			o := s.orchestration(stream.Schema().Disposition)
 			msg, err := o(ctx, rows, stream)
 

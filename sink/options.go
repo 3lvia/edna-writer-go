@@ -11,6 +11,7 @@ type optionsCollector struct {
 	projectID string
 	datasetID string
 	ops       TableOperations
+	errorChan chan error
 
 	metrics metrics.Metrics
 }
@@ -50,5 +51,12 @@ func WithMetrics(m metrics.Metrics) Option {
 func WithTableOperations(op TableOperations) Option {
 	return func(collector *optionsCollector) {
 		collector.ops = op
+	}
+}
+
+// WithErrorChannel sets a channel that this module will use to communicate all errors out.
+func WithErrorChannel(errChan chan error) Option {
+	return func(collector *optionsCollector) {
+		collector.errorChan = errChan
 	}
 }

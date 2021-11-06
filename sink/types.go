@@ -15,9 +15,16 @@ type targetStream interface {
 	Schema() Schema
 }
 
+// SourceStream is the stream that the source of the data that shall be written to BigQuery uses in order to communicate
+// with this package.
 type SourceStream interface {
+	// Type is the type of the stream, usually the same as the table that the data is written to in BigQuery.
 	Type() string
+
+	// Send sends the given value on the stream.
 	Send(v bigquery.ValueSaver)
+
+	// Complete sends the signal that the stream is now complete for this iteration to the receiver.
 	Complete()
 }
 
