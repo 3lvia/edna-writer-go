@@ -68,7 +68,14 @@ func (o *tableOperations) CopyTable(ctx context.Context, source, dest *bigquery.
 }
 
 func (o *tableOperations) DeleteTable(ctx context.Context, table *bigquery.Table) error {
-	return table.Delete(ctx)
+	err := table.Delete(ctx)
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(err.Error(), "googleapi: Error 404: Not found:") {
+		return nil
+	}
+	return err
 }
 
 func (o *tableOperations) TableRef(dataset string, schema Schema) *bigquery.Table {
