@@ -63,10 +63,12 @@ func Start(ctx context.Context, opts ...Option) {
 // are handled when this package is started.
 func Stream(typ string, schema Schema) SourceStream {
 	s := &streamImpl{
-		typ:     typ,
-		schema:  schema,
-		objects: make(chan bigquery.ValueSaver),
-		done:    make(chan struct{}),
+		typ:    typ,
+		schema: schema,
+		object: make(chan bigquery.ValueSaver),
+		list:   make(chan []bigquery.ValueSaver),
+		flush:  make(chan struct{}),
+		done:   make(chan struct{}),
 	}
 	streams = append(streams, s)
 	return s

@@ -104,7 +104,7 @@ func Test_Start_WriteTruncate(t *testing.T) {
 		}
 	}(countChanges, gaugeChanges, wg)
 
-	sourceStream := sink.Stream("test", schema(bigquery.WriteTruncate))
+	sourceStream := sink.Stream("test2", schema(bigquery.WriteTruncate))
 
 	ops := &mockTableOperations{}
 
@@ -143,6 +143,71 @@ func Test_Start_WriteTruncate(t *testing.T) {
 	}
 }
 
+func Test_Start_WriteAppend_WithFlushing(t *testing.T) {
+	ctx := context.Background()
+
+	//countChanges := make(chan metrics.CountChange)
+	//gaugeChanges := make(chan metrics.GaugeChange)
+	//m := metrics.New(metrics.WithOutputChannels(countChanges, gaugeChanges))
+
+	m := metrics.New()
+	//
+	//wg := &sync.WaitGroup{}
+	//wg.Add(1)
+
+	//go func(cc <-chan metrics.CountChange, gc <-chan metrics.GaugeChange, wg *sync.WaitGroup) {
+	//	count := 0
+	//	for {
+	//		select {
+	//		case c := <-cc:
+	//			fmt.Printf("count %s changed by %f\n", c.Name, c.Increment)
+	//			count++
+	//			if count >= 4 {
+	//				wg.Done()
+	//			}
+	//		case g := <-gc:
+	//			fmt.Printf("gauge %s changed by %f\n", g.Name, g.Value)
+	//		}
+	//	}
+	//}(countChanges, gaugeChanges, wg)
+
+	sourceStream := sink.Stream("test", schema(bigquery.WriteAppend))
+
+	done := make(chan struct{})
+	ops := &mockTableOperations{}
+	ops.setDoneChan(3, done)
+
+	sink.Start(
+		ctx,
+		sink.WithBigQuery(projectID, datasetID),
+		sink.WithTableOperations(ops),
+		sink.WithMetrics(m))
+
+	startFlushingProducer(sourceStream)
+
+	<- done
+
+	if len(ops.rows) != 9 {
+		t.Errorf("unexpected number of rows written, got %d", len(ops.rows))
+	}
+
+	if len(ops.tableCreations) != 1 {
+		t.Errorf("unexpected number of table creations, got %d", len(ops.tableCreations))
+	}
+	tc := ops.tableCreations[0]
+	if !strings.Contains(tc, "domain_area_raw.integration_test_truncate") {
+		t.Errorf("unexpected temp table created, got %s", tc)
+	}
+
+	if len(ops.tableCopyOperations) != 0 {
+		t.Errorf("unexpected number of copy operations, got %d", len(ops.tableCopyOperations))
+	}
+
+	if len(ops.tableDeletions) != 0 {
+		t.Errorf("unexpected number of table deletions, got %d", len(ops.tableDeletions))
+	}
+}
+
 func startProducer(ss sink.SourceStream) {
 	go func() {
 		for i := 0; i < 3; i++ {
@@ -154,6 +219,22 @@ func startProducer(ss sink.SourceStream) {
 			ss.Send(r)
 		}
 		ss.Complete()
+	}()
+}
+
+func startFlushingProducer(ss sink.SourceStream) {
+	go func() {
+		for i := 0; i < 3; i++ {
+			for j := 0; j < 3; j++ {
+				r := &row{
+					s: fmt.Sprintf("%d", i),
+					i: i,
+					t: time.Now().UTC(),
+				}
+				ss.Send(r)
+			}
+			ss.Flush()
+		}
 	}()
 }
 
@@ -206,12 +287,19 @@ type mockTableOperations struct {
 	tableCreations      []string
 	tableCopyOperations []string
 	tableDeletions      []string
+	iterationCount      int
+	doneAfterWrites     int
+	doneChan            chan<- struct{}
 	rows                []bigquery.ValueSaver
 }
 
 func (m *mockTableOperations) Write(ctx context.Context, table *bigquery.Table, rows []bigquery.ValueSaver) error {
 	for _, saver := range rows {
 		m.rows = append(m.rows, saver)
+	}
+	m.iterationCount = m.iterationCount + 1
+	if m.doneChan != nil && m.iterationCount >= m.doneAfterWrites {
+		m.doneChan <- struct{}{}
 	}
 	return nil
 }
@@ -235,4 +323,9 @@ func (m *mockTableOperations) DeleteTable(ctx context.Context, table *bigquery.T
 
 func (m *mockTableOperations) TableRef(dataset string, schema sink.Schema) *bigquery.Table {
 	return &bigquery.Table{DatasetID: dataset, TableID: schema.BQSchema.Name}
+}
+
+func (m *mockTableOperations) setDoneChan(doneAfter int, ch chan<- struct{}) {
+	m.doneChan = ch
+	m.doneAfterWrites = doneAfter
 }

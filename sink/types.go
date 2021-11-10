@@ -17,6 +17,12 @@ type SourceStream interface {
 	// Send sends the given value on the stream.
 	Send(v bigquery.ValueSaver)
 
+	// SendAll sends all the elements in the list on the stream.
+	SendAll(v []bigquery.ValueSaver)
+
+	// Flush writes all elements currently held in memory to BigQuery.
+	Flush()
+
 	// Complete sends the signal that the stream is now complete for this iteration to the receiver.
 	Complete()
 }
@@ -25,28 +31,26 @@ type streamImpl struct {
 	typ    string
 	schema Schema
 
-	objects chan bigquery.ValueSaver
-	done    chan struct{}
+	object chan bigquery.ValueSaver
+	list   chan []bigquery.ValueSaver
+	flush  chan struct{}
+	done   chan struct{}
 }
 
 func (s *streamImpl) Type() string {
 	return s.typ
 }
 
-func (s *streamImpl) Schema() Schema {
-	return s.schema
-}
-
-func (s *streamImpl) Stream() <-chan bigquery.ValueSaver {
-	return s.objects
-}
-
 func (s *streamImpl) Send(v bigquery.ValueSaver) {
-	s.objects <- v
+	s.object <- v
 }
 
-func (s *streamImpl) Done() <-chan struct{} {
-	return s.done
+func (s *streamImpl) SendAll(v []bigquery.ValueSaver) {
+	s.list <- v
+}
+
+func (s *streamImpl) Flush() {
+	s.flush <- struct{}{}
 }
 
 func (s *streamImpl) Complete() {

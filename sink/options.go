@@ -17,16 +17,16 @@ type optionsCollector struct {
 }
 
 func (c *optionsCollector) operations(ctx context.Context) TableOperations {
-	if c.ops == nil {
-		client, err := bigquery.NewClient(ctx, c.projectID)
-		if err != nil {
-			log.Fatal(err)
-		}
-		return &tableOperations{client: client}
+	if c.ops != nil {
+		return c.ops
 	}
-	return c.ops
-}
 
+	client, err := bigquery.NewClient(ctx, c.projectID)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &tableOperations{client: client}
+}
 
 // Option for configuring this package.
 type Option func(collector *optionsCollector)
