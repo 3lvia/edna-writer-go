@@ -3,6 +3,7 @@ package sink
 import (
 	"cloud.google.com/go/bigquery"
 	"context"
+	"github.com/3lvia/hn-config-lib-go/vault"
 	"github.com/3lvia/metrics-go/metrics"
 	"log"
 )
@@ -12,6 +13,8 @@ type optionsCollector struct {
 	datasetID string
 	ops       TableOperations
 	errorChan chan error
+
+	v vault.SecretsManager
 
 	metrics metrics.Metrics
 }
@@ -58,5 +61,14 @@ func WithTableOperations(op TableOperations) Option {
 func WithErrorChannel(errChan chan error) Option {
 	return func(collector *optionsCollector) {
 		collector.errorChan = errChan
+	}
+}
+
+// WithVault sets the vault secrets manager to be used. This is used for obtaining the Google Cloud service account that
+// must be set in order to access BigQuery. If this option is not used, this module will assume that the environment
+// variable GOOGLE_APPLICATION_CREDENTIALS has already been set by the client code.
+func WithVault(v vault.SecretsManager) Option {
+	return func(collector *optionsCollector) {
+		collector.v = v
 	}
 }

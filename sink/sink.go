@@ -31,6 +31,11 @@ func Start(ctx context.Context, opts ...Option) {
 		opt(collector)
 	}
 
+	err := setCredentials(collector.v)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	errorChan := make(chan error)
 	externalErrChan := collector.errorChan
 
